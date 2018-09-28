@@ -71,7 +71,6 @@ bool q_insert_head(queue_t *q, char *s)
         if (newh != NULL) {
             newh->value = strdup(s);
             newh->next = q->head;
-
             /* case : the first node */
             if (q->head == NULL && q->tail == NULL)
                 q->tail = newh;
@@ -170,4 +169,20 @@ int q_size(queue_t *q)
 void q_reverse(queue_t *q)
 {
     /* You need to write the code for this function */
+    if (q != NULL && q->size != 0) {
+        list_ele_t *pre = NULL;       // previous
+        list_ele_t *cur = q->head;    // current
+        list_ele_t *nxt = cur->next;  // next
+
+        q->tail = q->head;
+        while (nxt != NULL) {
+            cur->next = pre;
+            pre = cur;
+            cur = nxt;
+            nxt = cur->next;
+        }
+
+        cur->next = pre;
+        q->head = cur;
+    }
 }
