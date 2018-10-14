@@ -27,7 +27,8 @@ queue_t *q_new()
     queue_t *q = malloc(sizeof(queue_t));
     if (q == NULL)
         return NULL;
-    q->entry = NULL;  // initialization
+
+    INIT_LIST_HEAD(&q->head);
     q->size = 0;
     return q;
 }
@@ -38,19 +39,13 @@ void q_free(queue_t *q)
     /* How about freeing the list elements and the strings? */
     /* Free queue structure */
     if (q != NULL) {
-        list_ele_t *enptr = q->entry;
+        /* one for iterator, one for safe */
+        struct list_head *li = NULL, *lis = NULL;
+        list_ele_t *rm_node;
 
-        if (enptr != NULL) {
-            /* one for iterator, one for safe */
-            struct list_head *li = NULL, *lis = NULL;
-            list_ele_t *rm_node;
-
-            list_for_each_safe(li, lis, &enptr->list)
-            {
-                list_del(li);
-                rm_node = container_of(li, list_ele_t, list);
-                free(rm_node);
-            }
+        list_for_each_safe(li, lis, &q->head)
+        {
+            list_del(li);
             rm_node = container_of(li, list_ele_t, list);
             free(rm_node);
         }
@@ -77,11 +72,8 @@ bool q_insert_head(queue_t *q, char *s)
         if (newh != NULL) {
             newh->value = strdup(s);
             INIT_LIST_HEAD(&newh->list);
+            list_add(&newh->list, &q->head);
 
-            if (q->entry != NULL)
-                list_add_tail(&newh->list, &q->entry->list);
-
-            q->entry = newh;  // entry is new node
             q->size++;
             return true;
         }
@@ -110,11 +102,7 @@ bool q_insert_tail(queue_t *q, char *s)
         if (newh != NULL) {
             newh->value = strdup(s);
             INIT_LIST_HEAD(&newh->list);
-
-            if (q->entry != NULL)
-                list_add_tail(&newh->list, &q->entry->list);
-            else
-                q->entry = newh;  // entry is new node
+            list_add_tail(&newh->list, &q->head);
 
             q->size++;
             return true;
@@ -135,28 +123,19 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
     /* You need to fix up this code. */
     if (q != NULL) {
-        list_ele_t *rm_ptr = q->entry;
-        if (rm_ptr != NULL) {  // if the removed node is not NULL
+        /* If the next ptr point to itself, them it's null */
+        if (q->head.next != &q->head) {
+            list_ele_t *rm_node = container_of(q->head.next, list_ele_t, list);
+
             if (sp != NULL) {
-                memcpy(sp, rm_ptr->value,
+                memcpy(sp, rm_node->value,
                        bufsize);         // copy the removed string to sp
                 sp[bufsize - 1] = '\0';  // add terminator at the end
             }
 
-            /*
-             * move the entry ptr to the next node.
-             * if it's the last node, then make entry to NULL
-             */
-            if (q->size > 1)
-                q->entry = container_of(rm_ptr->list.next, list_ele_t, list);
-            else
-                q->entry = NULL;
-
+            list_del(q->head.next);
+            free(rm_node);  // free the removed node
             q->size--;
-
-            list_del(&rm_ptr->list);
-            free(rm_ptr);   // free the removed node
-            rm_ptr = NULL;  // tmp ptr to NULL
 
             return true;
         }
@@ -184,7 +163,22 @@ int q_size(queue_t *q)
   It should rearrange the existing ones.
  */
 void q_reverse(queue_t *q)
-{ /*
+{
+    if (q != NULL) {
+        struct list_head *li = NULL, *lis = NULL, *tmp = NULL;
+
+        list_for_each_safe(li, lis, &q->head)
+        {
+            tmp = li->next;
+            li->next = li->prev;
+            li->prev = tmp;
+        }
+        tmp = li->next;
+        li->next = li->prev;
+        li->prev = tmp;
+    }
+
+    /*
      if (q != NULL && q->size != 0) {
          list_ele_t *pre = NULL;       // previous
          list_ele_t *cur = q->head;    // current
@@ -202,4 +196,16 @@ void q_reverse(queue_t *q)
          q->head = cur;
      }
    */
+}
+
+/**
+ * q_print_addr() - a function used to print the next and prev pointer address
+ * @head: the list_head struct want to print address
+ */
+void q_print_addr(struct list_head *head)
+{
+    printf("head %p\n", head);
+    printf("-> %p\n", head->next);
+    printf("<- %p\n", head->prev);
+    printf("------------\n");
 }

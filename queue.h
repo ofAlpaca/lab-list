@@ -54,8 +54,8 @@ typedef struct ELE {
 
 /* Queue structure */
 typedef struct {
-    list_ele_t *entry; /* Doubly Linked list of elements */
-    size_t size;       // size of the linked list
+    size_t size;           // size of the linked list
+    struct list_head head; /* Doubly Linked list of elements */
 } queue_t;
 
 /************** Operations on doubly linked list *********************/
@@ -168,3 +168,9 @@ int q_size(queue_t *q);
   It should rearrange the existing ones.
  */
 void q_reverse(queue_t *q);
+
+/**
+ * q_print_addr() - a function used to print the next and prev pointer address
+ * @head: the list_head struct want to print address
+ */
+void q_print_addr(struct list_head *head);
